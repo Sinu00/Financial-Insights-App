@@ -95,10 +95,6 @@ input, select {
 }
 
 .formBtn{
-    margin: auto;
-}
-
-.formBtn{
     background-color: #3498db;
     color: #fff;
     border: none;
@@ -140,4 +136,18 @@ input, select {
 .card:hover {
     background-color: #f0f0f0; 
     cursor: pointer;
+}
+
+.hr{
+    margin: 30px 10px;
+}
+
+.downloadBtn{
+    background-color: #3498db;
+    color: #fff;
+    border: none;
+    padding: 10px 15px;
+    border-radius: 5px;
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+    text-decoration: none;
 }
