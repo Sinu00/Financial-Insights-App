@@ -1,23 +1,14 @@
 const express = require('express');
 const bodyParser = require('body-parser');
-const pg = require('pg');
 const PDFDocument = require('pdfkit');
 const fs = require('fs');
 const path = require('path');
 const moment = require('moment');
 require('dotenv').config();
+const itemsPool = require('./DBConfig'); // Change the path accordingly
 
-const port = 3000;
+const port = process.env.PORT || 3000;
 const app = express();
-
-const db = new pg.Client({
-    user: "postgres",
-    host: "localhost",
-    database: "world",
-    password: "202222",
-    port: 5432,
-  });
-  db.connect();
 
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(express.static(__dirname + '/public'));
@@ -32,7 +23,7 @@ app.post('/addData', async (req, res) => {
         const { sno, date, particular, amt, dataType } = req.body;
         const tableName = dataType === 'expense' ? 'expense' : 'income';
         const insertQuery = `INSERT INTO ${tableName} (sno, date, particular, amt) VALUES ($1, $2, $3, $4)`;
-        await db.query(insertQuery, [sno, date, particular, amt]);
+        await itemsPool.query(insertQuery, [sno, date, particular, amt]);
 
         res.redirect('/');
     } catch (error) {
@@ -41,15 +32,15 @@ app.post('/addData', async (req, res) => {
     }
 });
 
-
 // Display the data
 app.get('/', async (req, res) => {
     try {
         const expenseQuery = 'SELECT * FROM expense';
-        const expenseResult = await db.query(expenseQuery);
+        const expenseResult = await itemsPool.query(expenseQuery);
         const expenseData = expenseResult.rows;
+
         const incomeQuery = 'SELECT * FROM income';
-        const incomeResult = await db.query(incomeQuery);
+        const incomeResult = await itemsPool.query(incomeQuery);
         const incomeData = incomeResult.rows;
 
         res.render('index', { expenseData, incomeData });
@@ -61,12 +52,12 @@ app.get('/', async (req, res) => {
 
 app.get('/analytics', async (req, res) => {
     try {
-        const expenseTotalAmt = await db.query("SELECT amt FROM expense");
+        const expenseTotalAmt = await itemsPool.query("SELECT amt FROM expense");
         const expenseData = expenseTotalAmt.rows.map(row => row.amt);
 
         const sumOfExpense = expenseData.reduce((total, value) => total + value, 0);
 
-        const incomeTotalAmt = await db.query("SELECT amt FROM income");
+        const incomeTotalAmt = await itemsPool.query("SELECT amt FROM income");
         const incomeData = incomeTotalAmt.rows.map(row => row.amt);
 
         const sumOfIncome = incomeData.reduce((total, value) => total + value, 0);
@@ -91,12 +82,12 @@ app.get('/analytics', async (req, res) => {
 app.get('/downloadPDF', async (req, res) => {
     try {
         // Fetch the data needed for the PDF
-        const expenseTotalAmt = await db.query("SELECT amt FROM expense");
+        const expenseTotalAmt = await itemsPool.query("SELECT amt FROM expense");
         const expenseData = expenseTotalAmt.rows.map(row => row.amt);
 
         const sumOfExpense = expenseData.reduce((total, value) => total + value, 0);
 
-        const incomeTotalAmt = await db.query("SELECT amt FROM income");
+        const incomeTotalAmt = await itemsPool.query("SELECT amt FROM income");
         const incomeData = incomeTotalAmt.rows.map(row => row.amt);
 
         const sumOfIncome = incomeData.reduce((total, value) => total + value, 0);
@@ -155,7 +146,7 @@ app.post('/removeExpense', async (req, res) => {
     try {
         const { sno } = req.body;
         const deleteQuery = 'DELETE FROM expense WHERE sno = $1';
-        await db.query(deleteQuery, [sno]);
+        await itemsPool.query(deleteQuery, [sno]);
         res.redirect('/');
     } catch (error) {
         console.error('Error removing expense:', error);
@@ -167,14 +158,13 @@ app.post('/removeIncome', async (req, res) => {
     try {
         const { sno } = req.body;
         const deleteQuery = 'DELETE FROM income WHERE sno = $1';
-        await db.query(deleteQuery, [sno]);
+        await itemsPool.query(deleteQuery, [sno]);
         res.redirect('/');
     } catch (error) {
         console.error('Error removing income:', error);
         res.status(500).send('Internal Server Error');
     }
 });
-
 
 app.listen(port, () => {
     console.log(`listening at http://localhost:${port}`);
